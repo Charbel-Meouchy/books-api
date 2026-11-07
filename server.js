@@ -164,6 +164,16 @@ app.use((req, res) => {
   res.status(404).json({ error: `Route not found: ${req.method} ${req.originalUrl}` });
 });
 
+
+// Error handler (Express knows it is one because it has 4 parameters).
+// Catches broken JSON bodies and any error a route did not handle, so the server never crashes.
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Malformed JSON in request body' });
+  }
+  sendServerError(res, err);
+});
+
 // ---------- Start: connect first, then listen ----------
 if (!dbUri) {
   console.error('MONGODB_URI is missing. Copy .env.example to .env and add your connection string.');
