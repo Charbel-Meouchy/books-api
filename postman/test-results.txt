@@ -1,0 +1,111 @@
+newman
+
+Books API
+
+□ 1. Read
+└ List all books
+  GET http://localhost:3000/api/books [200 OK, 1.31kB, 131ms]
+  √  Status is 200 OK
+  √  Returns an array
+
+└ Search and filter books
+  GET http://localhost:3000/api/books?search=hobbit&read=true&sort=title [200 OK, 447B, 80ms]
+  √  Status is 200 OK
+  √  Every result is marked read
+
+└ List with invalid filter (400)
+  GET http://localhost:3000/api/books?read=maybe [400 Bad Request, 290B, 5ms]
+  √  Status is 400 Bad Request
+  √  Has an error message
+
+□ 2. Create
+└ Create a book
+  POST http://localhost:3000/api/books [201 Created, 444B, 103ms]
+  √  Status is 201 Created
+  √  Has an _id
+  √  Saved the title
+
+└ Create with invalid data (400)
+  POST http://localhost:3000/api/books [400 Bad Request, 597B, 4ms]
+  √  Status is 400 Bad Request
+  √  Lists each invalid field
+
+└ Create with malformed JSON (400)
+  POST http://localhost:3000/api/books [400 Bad Request, 286B, 7ms]
+  √  Status is 400 Bad Request
+  √  Explains the JSON is malformed
+
+□ 3. Read one
+└ Get one book
+  GET http://localhost:3000/api/books/6aef399a59679539e79d1130 [200 OK, 439B, 84ms]
+  √  Status is 200 OK
+  √  Is the book we created
+
+└ Get with invalid id (400)
+  GET http://localhost:3000/api/books/123 [400 Bad Request, 310B, 5ms]
+  √  Status is 400 Bad Request
+
+└ Get a book that does not exist (404)
+  GET http://localhost:3000/api/books/507f1f77bcf86cd799439011 [404 Not Found, 268B, 76ms]
+  √  Status is 404 Not Found
+  √  Says book not found
+
+□ 4. Update
+└ Replace a book (PUT)
+  PUT http://localhost:3000/api/books/6aef399a59679539e79d1130 [200 OK, 446B, 90ms]
+  √  Status is 200 OK
+  √  Title replaced
+  √  Year replaced
+
+└ Replace with missing fields (400)
+  PUT http://localhost:3000/api/books/6aef399a59679539e79d1130 [400 Bad Request, 347B, 4ms]
+  √  Status is 400 Bad Request
+  √  Says author is required
+
+└ Update one field (PATCH)
+  PATCH http://localhost:3000/api/books/6aef399a59679539e79d1130 [200 OK, 447B, 82ms]
+  √  Status is 200 OK
+  √  read changed
+  √  Other fields kept
+
+└ Update a book that does not exist (404)
+  PATCH http://localhost:3000/api/books/507f1f77bcf86cd799439011 [404 Not Found, 268B, 76ms]
+  √  Status is 404 Not Found
+
+□ 5. Delete
+└ Delete a book
+  DELETE http://localhost:3000/api/books/6aef399a59679539e79d1130 [204 No Content, 175B, 85ms]
+  √  Status is 204 No Content
+
+└ Delete it again (404)
+  DELETE http://localhost:3000/api/books/6aef399a59679539e79d1130 [404 Not Found, 268B, 83ms]
+  √  Status is 404 Not Found
+
+└ Confirm it is gone (404)
+  GET http://localhost:3000/api/books/6aef399a59679539e79d1130 [404 Not Found, 268B, 84ms]
+  √  Status is 404 Not Found
+
+□ 6. Unknown route
+└ Unknown route (404)
+  GET http://localhost:3000/api/authors [404 Not Found, 287B, 3ms]
+  √  Status is 404 Not Found
+
+┌─────────────────────────┬───────────────────┬──────────────────┐
+│                         │          executed │           failed │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│              iterations │                 1 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│                requests │                17 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│            test-scripts │                17 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│      prerequest-scripts │                 0 │                0 │
+├─────────────────────────┼───────────────────┼──────────────────┤
+│              assertions │                31 │                0 │
+├─────────────────────────┴───────────────────┴──────────────────┤
+│ total run duration: 2.1s                                       │
+├────────────────────────────────────────────────────────────────┤
+│ total data received: 2.87kB (approx)                           │
+├────────────────────────────────────────────────────────────────┤
+│ average response time: 58ms [min: 3ms, max: 131ms, s.d.: 41ms] │
+└────────────────────────────────────────────────────────────────┘
