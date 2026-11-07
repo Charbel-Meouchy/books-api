@@ -2,13 +2,23 @@ import 'dotenv/config';
 import dns from 'node:dns';
 import express from 'express';
 import mongoose from 'mongoose';
+import { Book } from './models/Book.js';
+import { validateId } from './middleware/validation.js';
 
 // Some Windows/router DNS servers refuse the SRV lookup that "mongodb+srv://" needs
 // (error: querySrv ECONNREFUSED). Using public DNS servers fixes it.
 dns.setServers(['8.8.8.8', '1.1.1.1']);
+
 const dbUri = process.env.MONGODB_URI;
 const port = Number(process.env.PORT) || 3000;
 const app = express();
+
+const SORT_OPTIONS = {
+  newest: { createdAt: -1 },
+  oldest: { createdAt: 1 },
+  title: { title: 1 },
+  year: { year: -1 },
+};
 
 // ---------- Middleware ----------
 function logger(req, res, next) {
@@ -20,9 +30,65 @@ function logger(req, res, next) {
 app.use(logger);
 app.use(express.json());
 
+// ---------- Helpers ----------
+// Makes user text safe to use inside a search pattern (so "C++" searches for "C++").
+function escapeRegex(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function sendServerError(res, err) {
+  console.error(err);
+  res.status(500).json({ error: 'Something went wrong on the server. Please try again.' });
+}
+
 // ---------- Routes ----------
 app.get('/', (req, res) => {
   res.json({ message: 'Books API is running', books: '/api/books' });
+});
+
+// List all books, with optional ?search=, ?read=, ?genre= and ?sort=
+app.get('/api/books', async (req, res) => {
+  const { search, read, genre, sort = 'newest' } = req.query;
+  const filter = {};
+
+  if (search) {
+    const pattern = { $regex: escapeRegex(String(search)), $options: 'i' };
+    filter.$or = [{ title: pattern }, { author: pattern }];
+  }
+
+  if (read !== undefined) {
+    if (read !== 'true' && read !== 'false') {
+      return res.status(400).json({ error: 'read must be "true" or "false"' });
+    }
+    filter.read = read === 'true';
+  }
+
+  if (genre) {
+    filter.genre = String(genre);
+  }
+
+  const sortBy = SORT_OPTIONS[sort];
+  if (!sortBy) {
+    return res.status(400).json({ error: `sort must be one of: ${Object.keys(SORT_OPTIONS).join(', ')}` });
+  }
+
+  try {
+    const books = await Book.find(filter).sort(sortBy);
+    res.json(books);
+  } catch (err) {
+    sendServerError(res, err);
+  }
+});
+
+// Get one book
+app.get('/api/books/:id', validateId, async (req, res) => {
+  try {
+    const book = await Book.findById(req.params.id);
+    if (!book) return res.status(404).json({ error: 'Book not found' });
+    res.json(book);
+  } catch (err) {
+    sendServerError(res, err);
+  }
 });
 
 // ---------- Errors ----------
