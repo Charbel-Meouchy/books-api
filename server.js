@@ -3,7 +3,7 @@ import dns from 'node:dns';
 import express from 'express';
 import mongoose from 'mongoose';
 import { Book } from './models/Book.js';
-import { validateId } from './middleware/validation.js';
+import { validateId, validateBook, validateBookUpdate } from './middleware/validation.js';
 
 // Some Windows/router DNS servers refuse the SRV lookup that "mongodb+srv://" needs
 // (error: querySrv ECONNREFUSED). Using public DNS servers fixes it.
@@ -31,6 +31,12 @@ app.use(logger);
 app.use(express.json());
 
 // ---------- Helpers ----------
+// Only these fields come from the client. The database sets _id, createdAt and updatedAt.
+function pickBookFields(body) {
+  const { title, author, year, genre, read } = body;
+  return { title, author, year, genre, read };
+}
+
 // Makes user text safe to use inside a search pattern (so "C++" searches for "C++").
 function escapeRegex(text) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -86,6 +92,67 @@ app.get('/api/books/:id', validateId, async (req, res) => {
     const book = await Book.findById(req.params.id);
     if (!book) return res.status(404).json({ error: 'Book not found' });
     res.json(book);
+  } catch (err) {
+    sendServerError(res, err);
+  }
+});
+
+// Create a book
+app.post('/api/books', validateBook, async (req, res) => {
+  try {
+    const book = await Book.create(pickBookFields(req.body));
+    res.status(201).json(book);
+  } catch (err) {
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ error: err.message });
+    }
+    sendServerError(res, err);
+  }
+});
+
+// Replace a book: every field is set, and fields left out go back to their defaults
+app.put('/api/books/:id', validateId, validateBook, async (req, res) => {
+  const { title, author, year = null, genre = 'other', read = false } = req.body;
+
+  try {
+    const book = await Book.findByIdAndUpdate(
+      req.params.id,
+      { title, author, year, genre, read },
+      { returnDocument: 'after', runValidators: true },
+    );
+    if (!book) return res.status(404).json({ error: 'Book not found' });
+    res.json(book);
+  } catch (err) {
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ error: err.message });
+    }
+    sendServerError(res, err);
+  }
+});
+
+// Update only the fields that are sent
+app.patch('/api/books/:id', validateId, validateBookUpdate, async (req, res) => {
+  try {
+    const book = await Book.findByIdAndUpdate(req.params.id, pickBookFields(req.body), {
+      returnDocument: 'after',
+      runValidators: true,
+    });
+    if (!book) return res.status(404).json({ error: 'Book not found' });
+    res.json(book);
+  } catch (err) {
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ error: err.message });
+    }
+    sendServerError(res, err);
+  }
+});
+
+// Delete a book
+app.delete('/api/books/:id', validateId, async (req, res) => {
+  try {
+    const book = await Book.findByIdAndDelete(req.params.id);
+    if (!book) return res.status(404).json({ error: 'Book not found' });
+    res.sendStatus(204);
   } catch (err) {
     sendServerError(res, err);
   }
