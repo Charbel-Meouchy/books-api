@@ -1,0 +1,16 @@
+{
+  "name": "books-api",
+  "version": "1.0.0",
+  "description": "REST API for a personal book collection, built with Express and MongoDB",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js"
+  },
+  "author": "Charbel Meouchy",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.3.0"
+  }
+}
