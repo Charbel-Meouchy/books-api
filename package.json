@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "seed": "node seed.js"
   },
   "author": "Charbel Meouchy",
   "license": "ISC",
